@@ -53,6 +53,8 @@ functions:
           method: get
     environment:
       restaurants_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/restaurants
+      cognito_user_pool_id: !Ref CognitoUserPool
+      cognito_client_id: !Ref WebCognitoUserPoolClient
   get-restaurants:
     handler: functions/get-restaurants.handler
     events:
@@ -60,6 +62,19 @@ functions:
           path: /restaurants
           method: get
           authorizer: aws_iam
+    environment:
+      default_results: 8
+      restaurants_table: !Ref RestaurantsTable
+  search-restaurants:
+    handler: functions/search-restaurants.handler
+    events:
+      - http:
+          path: /restaurants/search
+          method: post
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
     environment:
       default_results: 8
       restaurants_table: !Ref RestaurantsTable
