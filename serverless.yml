@@ -76,6 +76,67 @@ resources:
         KeySchema:
           - AttributeName: name
             KeyType: HASH
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        AliasAttributes:
+          - email
+        UsernameConfiguration:
+          CaseSensitive: false
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+            RequireUppercase: true
+        Schema:
+          - AttributeDataType: String
+            Name: given_name
+            Mutable: true
+            Required: true
+            StringAttributeConstraints:
+              MinLength: "1"
+          - AttributeDataType: String
+            Name: family_name
+            Mutable: true
+            Required: true
+            StringAttributeConstraints:
+              MinLength: "1"
+          - AttributeDataType: String
+            Name: email
+            Mutable: true
+            Required: true
+            StringAttributeConstraints:
+              MinLength: "1"
+    WebCognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: web
+        UserPoolId: !Ref CognitoUserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        PreventUserExistenceErrors: ENABLED
+    ServerCognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: server
+        UserPoolId: !Ref CognitoUserPool
+        ExplicitAuthFlows:
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        PreventUserExistenceErrors: ENABLED
   Outputs:
     RestaurantsTableName:
       Value: !Ref RestaurantsTable
+    CognitoUserPoolId:
+      Value: !Ref CognitoUserPool
+    CognitoUserPoolArn:
+      Value: !GetAtt CognitoUserPool.Arn
+    WebClientId:
+      Value: !Ref WebCognitoUserPoolClient
+    ServerClientId:
+      Value: !Ref ServerCognitoUserPoolClient
