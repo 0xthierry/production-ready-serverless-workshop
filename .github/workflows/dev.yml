@@ -1,0 +1,42 @@
+name: deploy dev
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    concurrency: dev-envirnoment
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::439100294369:role/GitHubActionsRole
+          role-session-name: GitHubActionsSession
+
+      - name: Install dependencies CI
+        run: npm ci
+      
+      - name: Run integration tests
+        run: npm test
+      
+      - name: Deploy
+        run: npx sls deploy
+
+      - name: Run e2e tests
+        run: npm run test:e2e
