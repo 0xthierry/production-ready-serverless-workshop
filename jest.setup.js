@@ -1,6 +1,5 @@
 const { promisify } = require('util')
 const awscred = require('awscred')
-const { before } = require('lodash')
 require('dotenv').config()
 
 let initialized = false

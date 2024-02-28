@@ -6,7 +6,7 @@ describe('When we invoke the GET / endpoint', () => {
     const response = await when.weInvokeGetIndex();
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers['Content-Type']).toBe('text/html; charset=utf-8');
+    expect(response.headers['content-type']).toBe('text/html; charset=utf-8');
     expect(response.body).toBeDefined();
 
     const $ = cheerio.load(response.body);
