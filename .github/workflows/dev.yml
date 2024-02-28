@@ -31,12 +31,24 @@ jobs:
 
       - name: Install dependencies CI
         run: npm ci
-      
+
+      - name: deploy temp environment
+        run: npx sls deploy -s dev-ci
+
+      - name: export env
+        run: npx sls export-env --all -s dev-ci
+
+      - name: add seed data
+        run: node seeds/seed-restaurants.js
+
       - name: Run integration tests
-        run: npm test
-      
-      - name: Deploy
-        run: npx sls deploy
+        run: npx cross-env TEST_MODE=handler jest
 
       - name: Run e2e tests
-        run: npm run test:e2e
+        run: npx cross-env TEST_MODE=http jest
+
+      - name: destroy temp environment
+        run: npx sls remove -s dev-ci
+
+      - name: Deploy
+        run: npx sls deploy
