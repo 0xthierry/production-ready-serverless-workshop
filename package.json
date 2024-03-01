@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dotenv": "sls export-env --all --overwrite",
-    "test": "npm run dotenv && cross-env TEST_MODE=handler jest --silent",
+    "test": "npm run dotenv && cross-env TEST_MODE=handler jest",
     "test:e2e": "npm run dotenv && cross-env TEST_MODE=http jest"
   },
   "keywords": [],
@@ -27,6 +27,9 @@
     "serverless-export-env": "^2.2.0"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.525.0",
+    "@middy/core": "^4.7.0",
+    "@middy/ssm": "^4.7.0",
     "aws4": "^1.12.0",
     "axios": "^1.6.7",
     "mustache": "^4.2.0"
