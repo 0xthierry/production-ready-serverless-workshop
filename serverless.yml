@@ -1,23 +1,4 @@
-# Welcome to Serverless!
-#
-# This file is the main config file for your service.
-# It's very minimal at this point and uses default values.
-# You can always add more config options for more control.
-# We've included some commented out config examples here.
-# Just uncomment any of them to get that config option.
-#
-# For full config options, check the docs:
-#    docs.serverless.com
-#
-# Happy Coding!
-
 service: workshop-${self:custom.name}
-# app and org for use with dashboard.serverless.com
-#app: your-app-name
-#org: your-org-name
-
-# You can pin your service to only deploy with a specific Serverless version
-# Check out our docs for more details
 frameworkVersion: "3"
 
 provider:
@@ -175,6 +156,15 @@ resources:
         Tier: Standard
         Type: String
         Value: '{"default_results":8}'
+    ParameterStoreServiceUrl:
+      Type: AWS::SSM::Parameter
+      Properties:
+        DataType: text
+        Description: Service URL
+        Name: /${self:service}/${sls:stage}/service-url
+        Tier: Standard
+        Type: String
+        Value: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
   Outputs:
     RestaurantsTableName:
       Value: !Ref RestaurantsTable
@@ -190,3 +180,5 @@ resources:
       Value: !Ref ParameterStoreGetRestaurantsConfig
     ParameterStoreSearchRestaurantsConfig:
       Value: !Ref ParameterStoreSearchRestaurantsConfig
+    ParameterStoreServiceUrl:
+      Value: !Ref ParameterStoreServiceUrl
