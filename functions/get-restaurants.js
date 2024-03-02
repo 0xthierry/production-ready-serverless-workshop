@@ -7,7 +7,7 @@ const { DynamoDBDocumentClient, ScanCommand } = require('@aws-sdk/lib-dynamodb')
 const dynamodbClient = new DynamoDB()
 const dynamodb = new DynamoDBDocumentClient(dynamodbClient)
 
-const { restaurants_table: tableName, service_name: serviceName, stage } = process.env;
+const { restaurants_table: tableName, service_name: serviceName, ssmStage } = process.env;
 
 module.exports.handler = middy(async (event, context) => {
   console.log(`fetching ${context.config.default_results} restaurants from ${tableName}...`)
@@ -30,6 +30,6 @@ module.exports.handler = middy(async (event, context) => {
   cacheExpiryInMillis: 1 * 60 * 1000, // 1 mins
   setToContext: true,
   fetchData: {
-    config: `/${serviceName}/${stage}/get-restaurants/config`
+    config: `/${serviceName}/${ssmStage}/get-restaurants/config`
   }
 }))

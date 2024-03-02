@@ -7,7 +7,7 @@ const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb")
 const dynamodbClient = new DynamoDB()
 const dynamodb = DynamoDBDocumentClient.from(dynamodbClient)
 
-const { restaurants_table: tableName, service_name: serviceName, stage } = process.env;
+const { restaurants_table: tableName, service_name: serviceName, ssmStage } = process.env;
 
 const findRestaurantsByTheme = async (theme, limit) => {
   console.log(`finding (${limit}) restaurants with the theme ${theme} from ${tableName}...`)
@@ -44,6 +44,6 @@ module.exports.handler = middy(async (event, context) => {
   cacheExpiryInMillis: 1 * 60 * 1000, // 1 mins
   setToContext: true,
   fetchData: {
-    config: `/${serviceName}/${stage}/search-restaurants/config`
+    config: `/${serviceName}/${ssmStage}/search-restaurants/config`
   }
 }));
