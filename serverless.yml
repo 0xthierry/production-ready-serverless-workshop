@@ -22,6 +22,7 @@ provider:
           Resource:
             - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/get-restaurants/config
             - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/config
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/secret-string
   environment:
     rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}    
     service_name: ${self:service}
@@ -57,7 +58,7 @@ functions:
           method: get
           authorizer: aws_iam
     environment:
-      default_results: 8
+      # default_results: 8
       restaurants_table: !Ref RestaurantsTable
   search-restaurants:
     handler: functions/search-restaurants.handler
@@ -70,7 +71,7 @@ functions:
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
     environment:
-      default_results: 8
+      # default_results: 8
       restaurants_table: !Ref RestaurantsTable
 
 resources:

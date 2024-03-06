@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dotenv": "sls export-env --all",
+    "dotenv": "sls export-env --all --overwrite",
     "test": "npm run dotenv && cross-env TEST_MODE=handler jest",
     "test:e2e": "npm run dotenv && cross-env TEST_MODE=http jest"
   },
