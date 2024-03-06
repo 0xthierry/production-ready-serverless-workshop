@@ -10,7 +10,7 @@ const viaHandler = async (event, functionName) => {
   const context = {}
   const response = await handler(event, context)
   const contentType = _.get(response, 'headers.content-type', 'application/json');
-  if (response.body && contentType === 'application/json') {
+  if (_.get(response, 'body') && contentType === 'application/json') {
     response.body = JSON.parse(response.body)
   }
   return response
@@ -87,9 +87,12 @@ const weInvokeSearchRestaurants = invokeByTestMode((theme) => viaHandler({ body:
 
 const weInvokePlaceOrder = invokeByTestMode((_, restaurantName) => viaHandler({ body: JSON.stringify({ restaurantName }) }, 'place-order'), (user, restaurantName) => viaHTTP('orders', 'POST', { body: { restaurantName }, auth: user && user.idToken }))
 
+const weInvokeNotifyRestaurant = invokeByTestMode((event) => viaHandler(event, 'notify-restaurant'), (_) => {throw new Error("not supported")})
+
 module.exports = {
   weInvokeGetIndex,
   weInvokeGetRestaurants,
   weInvokeSearchRestaurants,
   weInvokePlaceOrder,
+  weInvokeNotifyRestaurant,
 }

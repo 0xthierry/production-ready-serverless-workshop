@@ -27,6 +27,10 @@ provider:
           Action:
             - events:PutEvents
           Resource: !GetAtt EventBus.Arn
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource: !Ref RestaurantNotificationTopic
   environment:
     rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}    
     service_name: ${self:service}
@@ -90,6 +94,19 @@ functions:
             arn: !GetAtt CognitoUserPool.Arn
     environment:
       event_bus_name: !Ref EventBus
+  notify-restaurant:
+    handler: functions/notify-restaurant.handler
+    events:
+      - eventBridge:
+          eventBus: !Ref EventBus
+          pattern:
+            source:
+              - place-order
+            detail-type:
+              - order_placed
+    environment:
+      event_bus_name: !Ref EventBus
+      restaurant_notification_topic: !Ref RestaurantNotificationTopic
 resources:
   Resources:
     RestaurantsTable:
