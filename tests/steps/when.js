@@ -85,8 +85,11 @@ const weInvokeGetRestaurants = invokeByTestMode(() => viaHandler({}, 'get-restau
 
 const weInvokeSearchRestaurants = invokeByTestMode((theme) => viaHandler({ body: JSON.stringify({ theme }) }, 'search-restaurants'), (theme, user) => viaHTTP('restaurants/search', 'POST', { body: { theme }, auth: user && user.idToken }))
 
+const weInvokePlaceOrder = invokeByTestMode((_, restaurantName) => viaHandler({ body: JSON.stringify({ restaurantName }) }, 'place-order'), (user, restaurantName) => viaHTTP('orders', 'POST', { body: { restaurantName }, auth: user && user.idToken }))
+
 module.exports = {
   weInvokeGetIndex,
   weInvokeGetRestaurants,
   weInvokeSearchRestaurants,
+  weInvokePlaceOrder,
 }

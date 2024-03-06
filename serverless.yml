@@ -23,6 +23,10 @@ provider:
             - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/get-restaurants/config
             - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/config
             - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/secret-string
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource: !GetAtt EventBus.Arn
   environment:
     rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}    
     service_name: ${self:service}
@@ -50,6 +54,7 @@ functions:
       cognito_client_id: !Ref WebCognitoUserPoolClient
       rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
       cognito_server_client_id: !Ref ServerCognitoUserPoolClient
+      orders_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/orders
   get-restaurants:
     handler: functions/get-restaurants.handler
     events:
@@ -73,7 +78,18 @@ functions:
     environment:
       # default_results: 8
       restaurants_table: !Ref RestaurantsTable
-
+  place-order:
+    handler: functions/place-order.handler
+    events:
+      - http:
+          path: /orders
+          method: post
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+    environment:
+      event_bus_name: !Ref EventBus
 resources:
   Resources:
     RestaurantsTable:
@@ -166,6 +182,12 @@ resources:
         Tier: Standard
         Type: String
         Value: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
+    EventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: !Sub ${self:custom.name}-${sls:stage}-order-events
+    RestaurantNotificationTopic:
+      Type: AWS::SNS::Topic
   Outputs:
     RestaurantsTableName:
       Value: !Ref RestaurantsTable
@@ -183,3 +205,7 @@ resources:
       Value: !Ref ParameterStoreSearchRestaurantsConfig
     ParameterStoreServiceUrl:
       Value: !Ref ParameterStoreServiceUrl
+    EventBusName:
+      Value: !Ref EventBus
+    RestaurantNotificationTopicName:
+      Value: !Ref RestaurantNotificationTopic
