@@ -21,7 +21,7 @@ module.exports.handler = async (event, context) => {
   const putEvent = new PutEventsCommand({
     Entries: [
       {
-        Source: context.functionName,
+        Source: 'big-mouth',
         DetailType: EVENT_NAME,
         Detail: JSON.stringify(order),
         EventBusName: EVENT_BUS_NAME

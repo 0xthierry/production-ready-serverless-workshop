@@ -42,7 +42,7 @@ describe(`Given an authenticated user`, () => {
         expect(params.input).toStrictEqual({
           Entries: [
             expect.objectContaining({
-              Source: undefined,
+              Source: 'big-mouth',
               DetailType: 'order-placed',
               Detail: expect.stringContaining(`"orderId":"ord_`),
               EventBusName: process.env.event_bus_name

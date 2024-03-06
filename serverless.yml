@@ -101,7 +101,7 @@ functions:
           eventBus: !Ref EventBus
           pattern:
             source:
-              - place-order
+              - big-mouth
             detail-type:
               - order_placed
     environment:

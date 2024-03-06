@@ -48,7 +48,7 @@ describe(`When we receive an "order-placed" event`, () => {
       expect(params.input).toStrictEqual({
         Entries: [
           expect.objectContaining({
-            Source: undefined,
+            Source: 'big-mouth',
             DetailType: 'restaurant-notified',
             Detail: expect.stringContaining(`"orderId":"ord_`),
             EventBusName: process.env.event_bus_name
