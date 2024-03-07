@@ -41,9 +41,16 @@ custom:
   name: production-ready-serverless
   export-env:
     overwrite: true
+  exportOutputs:
+    include:
+      - E2ETestQueueUrl
+      - ServerClientId
+    output:
+      file: ./.env.cfnoutputs
 
 plugins:
   - serverless-export-env
+  - serverless-export-outputs
 
 functions:
   get-index:
@@ -57,7 +64,6 @@ functions:
       cognito_user_pool_id: !Ref CognitoUserPool
       cognito_client_id: !Ref WebCognitoUserPoolClient
       rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
-      cognito_server_client_id: !Ref ServerCognitoUserPoolClient
       orders_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/orders
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -80,7 +86,6 @@ functions:
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
     environment:
-      # default_results: 8
       restaurants_table: !Ref RestaurantsTable
   place-order:
     handler: functions/place-order.handler
@@ -108,6 +113,11 @@ functions:
       event_bus_name: !Ref EventBus
       restaurant_notification_topic: !Ref RestaurantNotificationTopic
 resources:
+  Conditions:
+    IsE2ETest:
+      Fn::Equals:
+        - ${sls:stage}
+        - dev
   Resources:
     RestaurantsTable:
       Type: AWS::DynamoDB::Table
@@ -205,6 +215,37 @@ resources:
         Name: !Sub ${self:custom.name}-${sls:stage}-order-events
     RestaurantNotificationTopic:
       Type: AWS::SNS::Topic
+    E2ETestQueue:
+      Type: AWS::SQS::Queue
+      Condition: IsE2ETest
+      Properties:
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 1
+    E2ETestQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Condition: IsE2ETest
+      Properties:
+        Queues:
+          - !Ref E2ETestQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            Effect: Allow
+            Principal: "*"
+            Action: SQS:SendMessage
+            Resource: !GetAtt E2ETestQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:sourceArn: !Ref RestaurantNotificationTopic
+    E2ETestSNSSubscription:
+      Type: AWS::SNS::Subscription
+      Condition: IsE2ETest
+      Properties:
+        Protocol: sqs
+        Endpoint: !GetAtt E2ETestQueue.Arn
+        RawMessageDelivery: false
+        Region: !Ref AWS::Region
+        TopicArn: !Ref RestaurantNotificationTopic
   Outputs:
     RestaurantsTableName:
       Value: !Ref RestaurantsTable
@@ -226,3 +267,6 @@ resources:
       Value: !Ref EventBus
     RestaurantNotificationTopicName:
       Value: !Ref RestaurantNotificationTopic
+    E2ETestQueueUrl:
+      Condition: IsE2ETest
+      Value: !Ref E2ETestQueue
