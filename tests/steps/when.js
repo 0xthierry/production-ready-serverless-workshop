@@ -1,6 +1,7 @@
 const _ = require('lodash')
 const aws4 = require('aws4')
 const http = require('axios')
+const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge')
 
 const APP_ROOT = '../../'
 const TEST_MODE = process.env.TEST_MODE
@@ -68,6 +69,22 @@ const viaHTTP = async (relPath, method, opts) => {
   }
 }
 
+const viaEventBridge = async (busName, source, detailType, detail) => {
+  const eventBridgeClient = new EventBridgeClient()
+  const putEvent = new PutEventsCommand({
+    Entries: [
+      {
+        Source: source,
+        DetailType: detailType,
+        Detail: JSON.stringify(detail),
+        EventBusName: busName
+      }
+    ]
+  })
+  await eventBridgeClient.send(putEvent)
+}
+
+
 const invokeByTestMode = (viaHandler, viaHTTP) => (...args) => {
   switch (TEST_MODE) {
     case 'handler':
@@ -87,7 +104,11 @@ const weInvokeSearchRestaurants = invokeByTestMode((theme) => viaHandler({ body:
 
 const weInvokePlaceOrder = invokeByTestMode((_, restaurantName) => viaHandler({ body: JSON.stringify({ restaurantName }) }, 'place-order'), (user, restaurantName) => viaHTTP('orders', 'POST', { body: { restaurantName }, auth: user && user.idToken }))
 
-const weInvokeNotifyRestaurant = invokeByTestMode((event) => viaHandler(event, 'notify-restaurant'), (_) => {throw new Error("not supported")})
+const weInvokeNotifyRestaurant = invokeByTestMode((event) => viaHandler(event, 'notify-restaurant'), async (event) => {
+  const busName = process.env.event_bus_name
+  await viaEventBridge(busName, event.source, event['detail-type'], event.detail)
+  console.log(`[${event.source}] - event sent to EventBridge`)
+})
 
 module.exports = {
   weInvokeGetIndex,

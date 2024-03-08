@@ -3,6 +3,7 @@ const { SNSClient } = require("@aws-sdk/client-sns")
 const chance = require("chance").Chance()
 
 const when = require('../steps/when')
+const messages = require('../utils/messages')
 
 const mockEventBridgeSendMethod = jest.fn()
 EventBridgeClient.prototype.send = mockEventBridgeSendMethod
@@ -11,28 +12,40 @@ const mockSNSSendMethod = jest.fn()
 SNSClient.prototype.send = mockSNSSendMethod
 
 describe(`When we receive an "order-placed" event`, () => {
-  if (process.env.TEST_MODE === "handler") {
+  const event = {
+    source: 'big-mouth',
+    'detail-type': 'order-placed',
+    detail: {
+      orderId: `ord_${chance.guid()}`,
+      userEmail: chance.email(),
+      restaurantName: 'Fangtasia'
+    }
+  }
+  let listener
 
-    beforeAll(async () => {
+  beforeAll(async () => {
+    if (process.env.TEST_MODE === "handler") {
       mockEventBridgeSendMethod.mockClear()
       mockSNSSendMethod.mockClear()
 
       mockEventBridgeSendMethod.mockReturnValue({})
       mockSNSSendMethod.mockReturnValue({})
+    } else {
+      listener = messages.startListening()
+    }
+    await when.weInvokeNotifyRestaurant(event)
+  })
 
-      const event = {
-        source: 'big-mouth',
-        'detail-type': 'order_placed',
-        detail: {
-          orderId: `ord_${chance.guid()}`,
-          userEmail: chance.email(),
-          restaurantName: 'Fangtasia'
-        }
-      }
+  afterAll(async () => {
+    if (process.env.TEST_MODE === "handler") {
+      mockEventBridgeSendMethod.mockClear()
+      mockSNSSendMethod.mockClear()
+    } else {
+      listener.stop()
+    }
+  })
 
-      await when.weInvokeNotifyRestaurant(event)
-    })
-
+  if (process.env.TEST_MODE === "handler") {
     it(`Should publish an event to a SNS topic`, async () => {
       expect(mockSNSSendMethod).toHaveBeenCalledTimes(1)
       const [params] = mockSNSSendMethod.mock.calls[0]
@@ -57,6 +70,14 @@ describe(`When we receive an "order-placed" event`, () => {
       })
     })
   } else {
-    it('no e2e test', () => {})
+    it('Should publish messages to SNS', async () => {
+      const expectedMessage = JSON.stringify(event.detail)
+
+      await listener.waitForMessage((x) =>
+        x.sourceType == 'sns' &&
+        x.source == process.env.restaurant_notification_topic &&
+        x.message === expectedMessage,
+      )
+    }, 10000)
   }
 })

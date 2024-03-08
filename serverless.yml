@@ -108,7 +108,7 @@ functions:
             source:
               - big-mouth
             detail-type:
-              - order_placed
+              - order-placed
     environment:
       event_bus_name: !Ref EventBus
       restaurant_notification_topic: !Ref RestaurantNotificationTopic
@@ -236,7 +236,7 @@ resources:
             Resource: !GetAtt E2ETestQueue.Arn
             Condition:
               ArnEquals:
-                aws:sourceArn: !Ref RestaurantNotificationTopic
+                aws:SourceArn: !Ref RestaurantNotificationTopic
     E2ETestSNSSubscription:
       Type: AWS::SNS::Subscription
       Condition: IsE2ETest
