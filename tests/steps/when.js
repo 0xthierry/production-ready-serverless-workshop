@@ -85,12 +85,12 @@ const viaEventBridge = async (busName, source, detailType, detail) => {
 }
 
 
-const invokeByTestMode = (viaHandler, viaHTTP) => (...args) => {
+const invokeByTestMode = (fA, fB) => (...args) => {
   switch (TEST_MODE) {
     case 'handler':
-      return viaHandler && viaHandler(...args)
+      return fA && fA(...args)
     case 'http':
-      return viaHTTP && viaHTTP(...args)
+      return fB && fB(...args)
     default:
       throw new Error(`Unsupported TEST_MODE: ${TEST_MODE}`)
   }
@@ -106,6 +106,7 @@ const weInvokePlaceOrder = invokeByTestMode((_, restaurantName) => viaHandler({ 
 
 const weInvokeNotifyRestaurant = invokeByTestMode((event) => viaHandler(event, 'notify-restaurant'), async (event) => {
   const busName = process.env.event_bus_name
+  console.log(busName, event.source, event['detail-type'], event.detail)
   await viaEventBridge(busName, event.source, event['detail-type'], event.detail)
   console.log(`[${event.source}] - event sent to EventBridge`)
 })
