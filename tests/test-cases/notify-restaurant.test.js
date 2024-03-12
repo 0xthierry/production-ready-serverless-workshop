@@ -6,10 +6,7 @@ const when = require('../steps/when')
 const messages = require('../utils/messages')
 
 const mockEventBridgeSendMethod = jest.fn()
-EventBridgeClient.prototype.send = mockEventBridgeSendMethod
-
 const mockSNSSendMethod = jest.fn()
-SNSClient.prototype.send = mockSNSSendMethod
 
 describe(`When we receive an "order-placed" event`, () => {
   const event = {
@@ -24,6 +21,9 @@ describe(`When we receive an "order-placed" event`, () => {
 
   beforeAll(async () => {
     if (process.env.TEST_MODE === "handler") {
+      EventBridgeClient.prototype.send = mockEventBridgeSendMethod
+      SNSClient.prototype.send = mockSNSSendMethod
+
       mockEventBridgeSendMethod.mockClear()
       mockSNSSendMethod.mockClear()
 
@@ -73,7 +73,7 @@ describe(`When we receive an "order-placed" event`, () => {
       await listener.waitForMessage((x) =>
         x.sourceType === 'sns' &&
         x.source === process.env.restaurant_notification_topic &&
-        x.message.startsWith('{"orderId"'),
+        x.message === JSON.stringify(event.detail),
       )
     }, 10000)
 

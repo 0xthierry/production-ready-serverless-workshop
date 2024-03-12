@@ -29,7 +29,7 @@ const startListening = () => {
           messageIds.add(response.Messages[i].MessageId)
 
           const body = JSON.parse(response.Messages[i].Body)
-
+          console.log('SQS message received:', JSON.stringify(body))
           if (body.TopicArn) {
             console.log('SNS message received:', body.Message)
             messages.next({

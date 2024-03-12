@@ -24,6 +24,10 @@ const init = async () => {
   console.log('AWS credential loaded')
 
   initialized = true
+
+  console.log('Jest setup done')
 }
 
-beforeAll(() => init())
+beforeAll(async () => {
+  await init()
+})

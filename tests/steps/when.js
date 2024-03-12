@@ -77,11 +77,11 @@ const viaEventBridge = async (busName, source, detailType, detail) => {
       Source: source,
       DetailType: detailType,
       Detail: JSON.stringify(detail),
-      EventBusName: 'production-ready-serverless-dev-order-events'
+      EventBusName: busName
     }]
   })
-  const response = await eventBridge.send(putEventsCmd)
-  console.log(response)
+  console.info(`[eventbridge] sending event: ${JSON.stringify(putEventsCmd)}`)
+  await eventBridge.send(putEventsCmd)
 }
 
 
@@ -106,7 +106,7 @@ const weInvokePlaceOrder = invokeByTestMode((_, restaurantName) => viaHandler({ 
 
 const weInvokeNotifyRestaurant = invokeByTestMode((event) => viaHandler(event, 'notify-restaurant'), async (event) => {
   const busName = process.env.event_bus_name
-    await viaEventBridge(busName, event.source, event['detail-type'], event.detail)
+  await viaEventBridge(busName, event.source, event['detail-type'], event.detail)
 })
 
 module.exports = {
@@ -114,5 +114,5 @@ module.exports = {
   weInvokeGetRestaurants,
   weInvokeSearchRestaurants,
   weInvokePlaceOrder,
-  weInvokeNotifyRestaurant,
+  weInvokeNotifyRestaurant: weInvokeNotifyRestaurant,
 }

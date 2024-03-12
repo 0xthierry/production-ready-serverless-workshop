@@ -240,7 +240,7 @@ resources:
             - Effect: Allow
               Principal: "*"
               Action: SQS:SendMessage
-              Resource: !GetAtt E2ETestEventBridgeRule.Arn
+              Resource: !GetAtt E2ETestQueue.Arn
               Condition:
                 ArnEquals:
                   aws:SourceArn: !GetAtt E2ETestEventBridgeRule.Arn
@@ -259,26 +259,25 @@ resources:
       Properties:
         EventBusName: !Ref EventBus
         EventPattern:
-          source: ["big-mouth"]
+          source:
+            - big-mouth
         State: ENABLED
         Targets:
           - Arn: !GetAtt E2ETestQueue.Arn
-            Id: E2ETestQueue
+            Id: e2eTestQueue
             InputTransformer:
               InputPathsMap:
                 source: "$.source"
                 detailType: "$.detail-type"
                 detail: "$.detail"
-                id: "$.id"
               InputTemplate: !Sub >
                 {
                   "event": {
-                    "source": "<source>",
-                    "detail-type": "<detailType>",
-                    "detail": "<detail>"
+                    "source": <source>,
+                    "detail-type": <detailType>,
+                    "detail": <detail>
                   },
-                  "eventBusName": "${EventBus}",
-                  "id": "<id>"
+                  "eventBusName": "${EventBus}"
                 }
   Outputs:
     RestaurantsTableName:
