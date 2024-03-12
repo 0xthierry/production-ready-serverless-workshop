@@ -1,7 +1,7 @@
 const _ = require('lodash')
 const aws4 = require('aws4')
 const http = require('axios')
-const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge')
+const { EventBridgeClient, PutEventsCommand } = require("@aws-sdk/client-eventbridge")
 
 const APP_ROOT = '../../'
 const TEST_MODE = process.env.TEST_MODE
@@ -70,27 +70,27 @@ const viaHTTP = async (relPath, method, opts) => {
 }
 
 const viaEventBridge = async (busName, source, detailType, detail) => {
-  const eventBridgeClient = new EventBridgeClient()
-  const putEvent = new PutEventsCommand({
-    Entries: [
-      {
-        Source: source,
-        DetailType: detailType,
-        Detail: JSON.stringify(detail),
-        EventBusName: busName
-      }
-    ]
+  const eventBridge = new EventBridgeClient()
+
+  const putEventsCmd = new PutEventsCommand({
+    Entries: [{
+      Source: source,
+      DetailType: detailType,
+      Detail: JSON.stringify(detail),
+      EventBusName: 'production-ready-serverless-dev-order-events'
+    }]
   })
-  await eventBridgeClient.send(putEvent)
+  const response = await eventBridge.send(putEventsCmd)
+  console.log(response)
 }
 
 
-const invokeByTestMode = (fA, fB) => (...args) => {
+const invokeByTestMode = (fA, fB) => async (...args) => {
   switch (TEST_MODE) {
     case 'handler':
-      return fA && fA(...args)
+      return fA && await fA(...args)
     case 'http':
-      return fB && fB(...args)
+      return fB && await fB(...args)
     default:
       throw new Error(`Unsupported TEST_MODE: ${TEST_MODE}`)
   }
@@ -106,9 +106,7 @@ const weInvokePlaceOrder = invokeByTestMode((_, restaurantName) => viaHandler({ 
 
 const weInvokeNotifyRestaurant = invokeByTestMode((event) => viaHandler(event, 'notify-restaurant'), async (event) => {
   const busName = process.env.event_bus_name
-  console.log(busName, event.source, event['detail-type'], event.detail)
-  await viaEventBridge(busName, event.source, event['detail-type'], event.detail)
-  console.log(`[${event.source}] - event sent to EventBridge`)
+    await viaEventBridge(busName, event.source, event['detail-type'], event.detail)
 })
 
 module.exports = {

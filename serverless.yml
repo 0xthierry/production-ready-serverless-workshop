@@ -230,13 +230,20 @@ resources:
         PolicyDocument:
           Version: "2012-10-17"
           Statement:
-            Effect: Allow
-            Principal: "*"
-            Action: SQS:SendMessage
-            Resource: !GetAtt E2ETestQueue.Arn
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !Ref RestaurantNotificationTopic
+            - Effect: Allow
+              Principal: "*"
+              Action: SQS:SendMessage
+              Resource: !GetAtt E2ETestQueue.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !Ref RestaurantNotificationTopic
+            - Effect: Allow
+              Principal: "*"
+              Action: SQS:SendMessage
+              Resource: !GetAtt E2ETestEventBridgeRule.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !GetAtt E2ETestEventBridgeRule.Arn
     E2ETestSNSSubscription:
       Type: AWS::SNS::Subscription
       Condition: IsE2ETest
@@ -246,6 +253,32 @@ resources:
         RawMessageDelivery: false
         Region: !Ref AWS::Region
         TopicArn: !Ref RestaurantNotificationTopic
+    E2ETestEventBridgeRule:
+      Type: AWS::Events::Rule
+      Properties:
+        EventBusName: !Ref EventBus
+        EventPattern:
+          source: ["big-mouth"]
+        State: ENABLED
+        Targets:
+          - Arn: !GetAtt E2ETestQueue.Arn
+            Id: E2ETestQueue
+            InputTransformer:
+              InputPathsMap:
+                source: "$.source"
+                detailType: "$.detail-type"
+                detail: "$.detail"
+                id: "$.id"
+              InputTemplate: !Sub >
+                {
+                  "event": {
+                    "source": "<source>",
+                    "detail-type": "<detailType>",
+                    "detail": "<detail>"
+                  },
+                  "eventBusName": "${EventBus}",
+                  "id": "<id>"
+                }
   Outputs:
     RestaurantsTableName:
       Value: !Ref RestaurantsTable
