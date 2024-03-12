@@ -255,6 +255,7 @@ resources:
         TopicArn: !Ref RestaurantNotificationTopic
     E2ETestEventBridgeRule:
       Type: AWS::Events::Rule
+      Condition: IsE2ETest
       Properties:
         EventBusName: !Ref EventBus
         EventPattern:
