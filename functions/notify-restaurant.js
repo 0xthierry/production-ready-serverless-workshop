@@ -1,13 +1,21 @@
 const { EventBridgeClient, PutEventsCommand } = require("@aws-sdk/client-eventbridge")
-const eventBridgeClient = new EventBridgeClient();
 const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns")
+
+const { makeIdempotent } = require("@aws-lambda-powertools/idempotency")
+const { DynamoDBPersistenceLayer } = require("@aws-lambda-powertools/idempotency/dynamodb")
+
+const eventBridgeClient = new EventBridgeClient();
 const snsClient = new SNSClient()
+
+const persistence = new DynamoDBPersistenceLayer({
+  tableName: process.env.idempotency_table
+})
 
 const EVENT_BUS_NAME = process.env.event_bus_name
 const TOPIC_ARN = process.env.restaurant_notification_topic
 const EVENT_NAME = 'restaurant-notified'
 
-module.exports.handler = async (event, context) => {
+const handler = async (event, context) => {
   const order = event.detail
   const publishCommand = new PublishCommand({
     Message: JSON.stringify(order),
@@ -31,4 +39,8 @@ module.exports.handler = async (event, context) => {
   await eventBridgeClient.send(putEvent)
 
   console.info(`published event ${EVENT_NAME} to ${EVENT_BUS_NAME}`)
-};
+
+  return orderId
+}
+
+module.exports.handler = makeIdempotent(handler, { persistenceStore: persistence });

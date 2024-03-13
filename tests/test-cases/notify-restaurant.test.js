@@ -20,7 +20,7 @@ describe(`When we receive an "order-placed" event`, () => {
   })
 
   afterAll(async () => {
-    listener.stop()
+    await listener.stop()
   })
 
   it('Should publish messages to a SNS topic', async () => {

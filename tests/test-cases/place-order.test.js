@@ -16,7 +16,7 @@ describe(`Given an authenticated user`, () => {
     if (user) {
       await teardown.anAuthenticatedUser(user);
     }
-    listener.stop()
+    await listener.stop()
   })
 
   describe(`When we invoke the POST /orders endpoint`, () => {

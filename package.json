@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dotenv": "sls export-env --all --overwrite",
-    "test": "npm run dotenv && cross-env TEST_MODE=handler jest",
-    "test:e2e": "npm run dotenv && cross-env TEST_MODE=http jest"
+    "dotenv": "sls export-env --all",
+    "test": "cross-env TEST_MODE=handler jest",
+    "test:e2e": "cross-env TEST_MODE=http jest"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +33,7 @@
     "serverless-plugin-extrinsic-functions": "^1.1.1"
   },
   "dependencies": {
+    "@aws-lambda-powertools/idempotency": "^2.0.2",
     "@aws-sdk/client-ssm": "^3.525.0",
     "@middy/core": "^4.7.0",
     "@middy/ssm": "^4.7.0",
