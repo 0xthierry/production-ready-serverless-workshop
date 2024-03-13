@@ -51,6 +51,7 @@ custom:
 plugins:
   - serverless-export-env
   - serverless-export-outputs
+  - serverless-plugin-extrinsic-functions
 
 functions:
   get-index:
@@ -115,7 +116,7 @@ functions:
 resources:
   Conditions:
     IsE2ETest:
-      Fn::Equals:
+      Fn::StartsWith:
         - ${sls:stage}
         - dev
   Resources:
