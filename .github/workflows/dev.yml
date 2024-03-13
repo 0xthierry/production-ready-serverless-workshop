@@ -36,7 +36,7 @@ jobs:
         run: npx sls deploy -s dev-ci
 
       - name: export env
-        run: npx sls export-env --all -s dev-ci
+        run: npx sls export-env --all -s dev-ci --param="ssmStage=dev"
 
       - name: add seed data
         run: node seeds/seed-restaurants.js
