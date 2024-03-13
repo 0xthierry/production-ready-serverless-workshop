@@ -4,40 +4,6 @@ frameworkVersion: "3"
 provider:
   name: aws
   runtime: nodejs20.x
-
-  iam:
-    role:
-      statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:scan
-          Resource: !GetAtt RestaurantsTable.Arn
-        - Effect: Allow
-          Action:
-            - execute-api:Invoke
-          Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${sls:stage}/GET/restaurants
-        - Effect: Allow
-          Action:
-            - ssm:GetParameters
-          Resource:
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/get-restaurants/config
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/config
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/secret-string
-        - Effect: Allow
-          Action:
-            - events:PutEvents
-          Resource: !GetAtt EventBus.Arn
-        - Effect: Allow
-          Action:
-            - sns:Publish
-          Resource: !Ref RestaurantNotificationTopic
-        - Effect: Allow
-          Action:
-            - dynamodb:PutItem
-            - dynamodb:GetItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-          Resource: !GetAtt IdempotencyTable.Arn
   environment:
     rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}    
     service_name: ${self:service}
@@ -59,6 +25,7 @@ plugins:
   - serverless-export-env
   - serverless-export-outputs
   - serverless-plugin-extrinsic-functions
+  - serverless-iam-roles-per-function
 
 functions:
   get-index:
@@ -73,6 +40,11 @@ functions:
       cognito_client_id: !Ref WebCognitoUserPoolClient
       rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}
       orders_api: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}/orders
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - execute-api:Invoke
+        Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${sls:stage}/GET/restaurants
   get-restaurants:
     handler: functions/get-restaurants.handler
     events:
@@ -83,6 +55,17 @@ functions:
     environment:
       # default_results: 8
       restaurants_table: !Ref RestaurantsTable
+    iamRoleStatementsName: !Sub "${self:service}-${sls:stage}-get-restaurants"
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:scan
+        Resource: !GetAtt RestaurantsTable.Arn
+      - Effect: Allow
+        Action:
+          - ssm:GetParameters
+        Resource:
+          - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/get-restaurants/config
   search-restaurants:
     handler: functions/search-restaurants.handler
     events:
@@ -95,6 +78,18 @@ functions:
             arn: !GetAtt CognitoUserPool.Arn
     environment:
       restaurants_table: !Ref RestaurantsTable
+    iamRoleStatementsName: !Sub "${self:service}-${sls:stage}-search-restaurants"
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+        Resource: !GetAtt RestaurantsTable.Arn
+      - Effect: Allow
+        Action:
+          - ssm:GetParameters
+        Resource:
+          - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/config
+          - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssmStage, sls:stage}/search-restaurants/secret-string
   place-order:
     handler: functions/place-order.handler
     events:
@@ -107,6 +102,11 @@ functions:
             arn: !GetAtt CognitoUserPool.Arn
     environment:
       event_bus_name: !Ref EventBus
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - events:PutEvents
+        Resource: !GetAtt EventBus.Arn
   notify-restaurant:
     handler: functions/notify-restaurant.handler
     events:
@@ -125,6 +125,27 @@ functions:
       event_bus_name: !Ref EventBus
       restaurant_notification_topic: !Ref RestaurantNotificationTopic
       idempotency_table: !Ref IdempotencyTable
+    iamRoleStatementsName: !Sub "${self:service}-${sls:stage}-notify-restaurant"
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - events:PutEvents
+        Resource: !GetAtt EventBus.Arn
+      - Effect: Allow
+        Action:
+          - sns:Publish
+        Resource: !Ref RestaurantNotificationTopic
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+        Resource: !GetAtt IdempotencyTable.Arn
+      - Effect: Allow
+        Action:
+          - sqs:SendMessage
+        Resource: !GetAtt OnFailureQueue.Arn
 resources:
   Conditions:
     IsE2ETest:
