@@ -117,6 +117,10 @@ functions:
               - big-mouth
             detail-type:
               - order-placed
+    destinations:
+      onFailure:
+        type: sqs
+        arn: !GetAtt OnFailureQueue.Arn
     environment:
       event_bus_name: !Ref EventBus
       restaurant_notification_topic: !Ref RestaurantNotificationTopic
@@ -301,6 +305,53 @@ resources:
         TimeToLiveSpecification:
           Enabled: true
           AttributeName: expiration
+    OnFailureQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        MessageRetentionPeriod: 60
+        VisibilityTimeout: 1
+    AlarmTopic:
+      Type: AWS::SNS::Topic
+    AlarmTopicSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: thierrysantoos123+cloudwatch@gmail.com
+        Protocol: email
+        TopicArn: !Ref AlarmTopic
+    OnFailureQueueAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: '[${sls:stage}] failed events detected in the onFailure destination from the notify-restaurant function'
+        MetricName: ApproximateNumberOfMessagesVisible
+        Namespace: AWS/SQS
+        Statistic: Maximum
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        Dimensions:
+          - Name: QueueName
+            Value: !GetAtt OnFailureQueue.QueueName
+        AlarmActions:
+          - !Ref AlarmTopic
+    DestinationDeliveryFailuresAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: '[${sls:stage}] notify-restaurant function failed to deliver message to the onFailure destination'
+        MetricName: DestinationDeliveryFailures
+        Namespace: AWS/Lambda
+        Statistic: Average
+        Period: 300
+        EvaluationPeriods: 1
+        Threshold: 0
+        ComparisonOperator: GreaterThanThreshold
+        TreatMissingData: notBreaching
+        Dimensions:
+          - Name: FunctionName
+            Value: !Ref NotifyDashrestaurantLambdaFunction
+        AlarmActions:
+          - !Ref AlarmTopic
   Outputs:
     RestaurantsTableName:
       Value: !Ref RestaurantsTable
