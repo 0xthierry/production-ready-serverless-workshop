@@ -8,10 +8,17 @@ const { Logger, } = require('@aws-lambda-powertools/logger')
 const { injectLambdaContext } = require('@aws-lambda-powertools/logger/middleware')
 const logger = new Logger({ serviceName: process.env.service_name })
 
+const { Tracer } = require("@aws-lambda-powertools/tracer")
+const { captureLambdaHandler } = require("@aws-lambda-powertools/tracer/middleware")
+const tracer = new Tracer({ serviceName: process.env.service_name })
+
 const middy = require('@middy/core')
 
 const eventBridgeClient = new EventBridgeClient();
 const snsClient = new SNSClient()
+
+tracer.captureAWSv3Client(eventBridgeClient)
+tracer.captureAWSv3Client(snsClient)
 
 const persistence = new DynamoDBPersistenceLayer({
   tableName: process.env.idempotency_table
@@ -56,4 +63,6 @@ const handler = async (event, context) => {
   return orderId
 }
 
-module.exports.handler = middy(makeIdempotent(handler, { persistenceStore: persistence })).use(injectLambdaContext(logger))
+module.exports.handler = middy(makeIdempotent(handler, { persistenceStore: persistence }))
+  .use(injectLambdaContext(logger))
+  .use(captureLambdaHandler(tracer)) 

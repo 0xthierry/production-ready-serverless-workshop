@@ -4,6 +4,17 @@ frameworkVersion: "3"
 provider:
   name: aws
   runtime: nodejs20.x
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - "xray:PutTelemetryRecords"
+            - "xray:PutTraceSegments"
+          Resource: "*"
+  tracing:
+    apiGateway: true
+    lambda: true
   environment:
     rest_api_url: !Sub https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}    
     service_name: ${self:service}
@@ -26,12 +37,22 @@ custom:
       - ServerClientId
     output:
       file: ./.env.cfnoutputs
+  serverless-iam-roles-per-function:
+    defaultInherit: true
+  esbuild:
+    minify: true
+    external:
+      - '@aws-sdk/*'
+
+package:
+  individually: true
 
 plugins:
   - serverless-export-env
   - serverless-export-outputs
   - serverless-plugin-extrinsic-functions
   - serverless-iam-roles-per-function
+  - serverless-esbuild
 
 functions:
   get-index:
@@ -51,6 +72,9 @@ functions:
         Action:
           - execute-api:Invoke
         Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${sls:stage}/GET/restaurants
+    package:
+      include:
+        - static/*
   get-restaurants:
     handler: functions/get-restaurants.handler
     events:
