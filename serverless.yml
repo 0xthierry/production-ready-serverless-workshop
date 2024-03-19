@@ -9,9 +9,15 @@ provider:
     service_name: ${self:service}
     stage: ${sls:stage}
     ssmStage: ${param:ssmStage, sls:stage}
+    LOG_LEVEL: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
+    POWERTOOLS_LOGGER_SAMPLE_RATE: 0.1 # 10% of logs will be sampled
+    POWERTOOLS_LOGGER_LOG_EVENT: true
 
 custom:
   name: production-ready-serverless
+  logLevel:
+    default: INFO
+    prod: ERROR
   export-env:
     overwrite: true
   exportOutputs:

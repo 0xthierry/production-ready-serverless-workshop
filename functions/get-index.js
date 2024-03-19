@@ -3,6 +3,12 @@ const http = require('axios')
 const mustache = require('mustache')
 const aws4 = require('aws4')
 
+const { Logger } = require('@aws-lambda-powertools/logger')
+const { injectLambdaContext } = require('@aws-lambda-powertools/logger/middleware')
+const logger = new Logger({ serviceName: process.env.service_name })
+
+const middy = require('@middy/core')
+
 const restaurantsApiRoot = process.env.restaurants_api
 const ordersApiRoot = process.env.orders_api
 const cognitoUserPoolId = process.env.cognito_user_pool_id
@@ -15,15 +21,17 @@ let html
 
 const loadHtml = () => {
   if (!html) {
-    console.log('loading index.html...')
+    logger.debug('loading index.html...')
     html = fs.readFileSync('static/index.html', 'utf-8')
-    console.log('loaded')
+    logger.debug('loaded')
   }
 
   return html
 }
 
-module.exports.handler = async (event, context) => {
+module.exports.handler = middy(async (event, context) => {
+  logger.refreshSampleRateCalculation()
+
   const url = new URL(restaurantsApiRoot)
   const opts = {
     host: url.hostname,
@@ -60,4 +68,4 @@ module.exports.handler = async (event, context) => {
   }
 
   return response
-}
+}).use(injectLambdaContext(logger))

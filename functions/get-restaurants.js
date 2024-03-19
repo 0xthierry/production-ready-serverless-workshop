@@ -4,20 +4,30 @@ const ssm = require('@middy/ssm')
 const { DynamoDB } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
+const { Logger, } = require('@aws-lambda-powertools/logger')
+const { injectLambdaContext } = require('@aws-lambda-powertools/logger/middleware')
+const logger = new Logger({ serviceName: process.env.service_name })
+
 const dynamodbClient = new DynamoDB()
 const dynamodb = new DynamoDBDocumentClient(dynamodbClient)
 
 const { restaurants_table: tableName, service_name: serviceName, ssmStage } = process.env;
 
 module.exports.handler = middy(async (event, context) => {
-  console.log(`fetching ${context.config.default_results} restaurants from ${tableName}...`)
+  logger.refreshSampleRateCalculation()
+  logger.debug('get-restaurants is executing...', {
+    tableName: tableName,
+    count: context.config.default_results
+  })
 
   const resp = await dynamodb.send(new ScanCommand({
     TableName: tableName,
     Limit: context.config.default_results
   }));
 
-  console.log(`found ${resp.Items.length} restaurants`);
+  logger.debug('got restaurants', {
+    count: resp.Items.length
+  })
 
   const response = {
     statusCode: 200,
@@ -32,4 +42,4 @@ module.exports.handler = middy(async (event, context) => {
   fetchData: {
     config: `/${serviceName}/${ssmStage}/get-restaurants/config`
   }
-}))
+})).use(injectLambdaContext(logger))

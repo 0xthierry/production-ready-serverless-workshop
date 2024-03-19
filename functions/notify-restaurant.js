@@ -4,6 +4,12 @@ const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns")
 const { makeIdempotent } = require("@aws-lambda-powertools/idempotency")
 const { DynamoDBPersistenceLayer } = require("@aws-lambda-powertools/idempotency/dynamodb")
 
+const { Logger, } = require('@aws-lambda-powertools/logger')
+const { injectLambdaContext } = require('@aws-lambda-powertools/logger/middleware')
+const logger = new Logger({ serviceName: process.env.service_name })
+
+const middy = require('@middy/core')
+
 const eventBridgeClient = new EventBridgeClient();
 const snsClient = new SNSClient()
 
@@ -16,6 +22,7 @@ const TOPIC_ARN = process.env.restaurant_notification_topic
 const EVENT_NAME = 'restaurant-notified'
 
 const handler = async (event, context) => {
+  logger.refreshSampleRateCalculation()
   const order = event.detail
   const publishCommand = new PublishCommand({
     Message: JSON.stringify(order),
@@ -24,7 +31,10 @@ const handler = async (event, context) => {
   await snsClient.send(publishCommand)
 
   const { restaurantName, orderId } = order;
-  console.info(`notified restaurant [${restaurantName}] of order [${orderId}]`)
+  logger.info(`notified restaurant`, {
+    restaurantName,
+    orderId
+  })
 
   const putEvent = new PutEventsCommand({
     Entries: [
@@ -38,9 +48,12 @@ const handler = async (event, context) => {
   })
   await eventBridgeClient.send(putEvent)
 
-  console.info(`published event ${EVENT_NAME} to ${EVENT_BUS_NAME}`)
+  logger.info(`published event to eventbridge`, {
+    eventBusName: EVENT_BUS_NAME,
+    eventName: EVENT_NAME,
+  })
 
   return orderId
 }
 
-module.exports.handler = makeIdempotent(handler, { persistenceStore: persistence });
+module.exports.handler = middy(makeIdempotent(handler, { persistenceStore: persistence })).use(injectLambdaContext(logger))
